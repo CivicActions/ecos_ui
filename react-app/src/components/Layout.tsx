@@ -1,7 +1,7 @@
-import { Header } from "@cmsgov/ds-healthcare-gov/preact";
-import { Footer } from "@cmsgov/ds-healthcare-gov/preact";
+import { Header } from "@cmsgov/ds-healthcare-gov";
+import { Footer } from "@cmsgov/ds-healthcare-gov";
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+export default function Layout({ children }: {children: React.ReactNode}) {
   return (
     <div className="page-wrapper">
       <Header hideLanguageSwitch hideLoginLink />
@@ -11,6 +11,4 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <Footer />
     </div>
   );
-};
-
-export default Layout;
+}
