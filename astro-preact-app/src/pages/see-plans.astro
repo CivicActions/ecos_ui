@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WindowShop from '../components/WindowShop.jsx';
+
+const campaignId = Astro.url.searchParams.get('campaign_id');
+---
+
+<Layout title="Welcome to Astro.">
+	<main>
+    <WindowShop campaignId={campaignId} client:only />
+	</main>
+</Layout>
