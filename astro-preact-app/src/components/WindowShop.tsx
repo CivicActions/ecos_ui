@@ -10,16 +10,16 @@ import {
   TextField,
   Button,
 } from "@cmsgov/ds-healthcare-gov/preact";
-import { useLocationQuery } from "./hooks/useLocationQuery";
-import { usePlanQuery } from "./hooks/usePlanQuery";
 import Layout from "./Layout";
-import type { Location } from "../types";
+import type { EcosPlanSearchResponseType } from "../pages/api/ecos/search";
 
 // const location = signal<Location | null>(null);
-const data = signal<object | null>(null);
+const data = signal<EcosPlanSearchResponseType | null>(null);
 const isLoading = signal<boolean>(false);
 const shouldFetchPlans = signal<boolean>(false);
+
 const shouldUpdateFormData = signal<boolean>(false);
+const shouldShowPlans = signal<boolean>(false);
 
 const isHelpDrawerOpen = signal<boolean>(false);
 const zipCode = signal<string | null>(null);
@@ -27,7 +27,7 @@ const fipsCode = signal<string | null>(null);
 const state = signal<string | null>(null);
 const income = signal<string | null>(null);
 const age = signal<string | null>(null);
-const coverageType = signal<"Individual" | "Family" | null>(null);
+const coverageType = signal<string | null>(null);
 const hasDependent = signal<boolean>(false);
 const isPregnant = signal<boolean>(false);
 const isTobaccoUser = signal<boolean>(false);
@@ -35,14 +35,14 @@ const isCoverageEligible = signal<boolean>(false);
 
 interface SearchValuesType {
   campaignId: string;
-  place: {
+  place?: {
     zipcode: string;
     countyfips: string;
     state: string;
   };
-  market: string;
-  household: {
-    income: number;
+  market?: string;
+  household?: {
+    income?: number;
     people: {
       age?: number;
       is_pregnant?: boolean;
@@ -55,32 +55,21 @@ interface SearchValuesType {
 
 export default function WindowShop({ campaignId }: { campaignId: string }) {
   if (campaignId && !data.value) {
-    console.log(data.value);
     shouldFetchPlans.value = true;
   }
 
   effect(() => {
     if (shouldUpdateFormData.value) {
       shouldUpdateFormData.value = false;
-      //@ts-ignore
       zipCode.value = data.value?.search.place.zipcode;
-      //@ts-ignore
       fipsCode.value = data.value?.search.place.countyfips;
-      //@ts-ignore
       state.value = data.value?.search.place.state;
-      //@ts-ignore
-      income.value = data.value?.search.household.income;
-      //@ts-ignore
-      age.value = data.value?.search.household.people[0].age;
-      //@ts-ignore
+      income.value = data.value?.search.household.income.toString();
+      age.value = data.value?.search.household.people[0].age.toString();
       coverageType.value = data.value?.search.market;
-      //@ts-ignore
       hasDependent.value = data.value?.search.household.people[0].is_parent;
-      //@ts-ignore
       isPregnant.value = data.value?.search.household.people[0].is_pregnant;
-      //@ts-ignore
       isTobaccoUser.value = data.value?.search.household.people[0].uses_tobacco;
-      //@ts-ignore
       isCoverageEligible.value = data.value?.search.household.people[0].has_mec;
     }
   });
@@ -131,42 +120,74 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
         });
     }
   });
-  // const { data: locations, zip, shouldFetchLocations } = useLocationQuery();
-  // const { data: planData, isLoading } = usePlanQuery(location, campaign);
 
-  // Assign the first location result.
-  // TODO handle zip codes with multiple counties
-  // effect(() => {
-  //   if (locations.value?.counties.length && !location.value) {
-  //     location.value = locations.value.counties[0];
-  //   }
-  // });
+  // Unset state and fips if user changes zip code
+  const handleZipCodeChange = (zip: string) => {
+    zipCode.value = zip;
+    state.value = null;
+    fipsCode.value = null;
+  };
 
-  if (false) {
+  if (data.value?.data && shouldShowPlans.value == true) {
+    const plans = data.value.data;
+    //PRIMARY_CARE_VISIT_TO_TREAT_AN_INJURY_OR_ILLNESS
+    //SPECIALIST_VISIT
     return (
-      <>
-        {/* {isLoading.value ? (
-          <p>Loading Plan Data...</p>
-        ) : planData.value ? (
-          <div>
-            The lowest available monthly premium is:{" "}
-            <span className="ds-u-font-weight--bold">
-              ${planData.value.ranges.premiums.min}
-            </span>
-            <p>This rate assumes you are:</p>
-            <ul>
-              <li>
-                Annual Income: ${planData.value.search_factors.household.income}
-              </li>
-              <li>Not pregnant</li>
-              <li>Not a parent</li>
-              <li>Not using tobacco</li>
-            </ul>
-          </div>
-        ) : (
-          <p>No plan available</p>
-        )} */}
-      </>
+      <Layout>
+        <h1>Plans</h1>
+        <p>
+          <strong>{plans.total} plans</strong> - ZIP Code {zipCode.value}
+        </p>
+        <Accordion>
+          <AccordionItem key="1" heading="Filter">
+            Filter controls
+          </AccordionItem>
+          <AccordionItem key="1" heading="Sort">
+            Sort order controls
+          </AccordionItem>
+        </Accordion>
+        <div>
+          {plans.plans.map((plan) => (
+            <div>
+              <h2>{plan.name}</h2>
+              <p>{plan.issuer.name}</p>
+              <p>
+                <strong>Premium:</strong> ${plan.premium_w_credit} per month
+              </p>
+              <p>
+                <strong>Deductible: </strong>${plan.deductibles[0].amount} per
+                year
+              </p>
+              <p>
+                {plan.metal_level} | {plan.type} | Plan ID: {plan.id}
+              </p>
+              <p>
+                <strong>Primary care:</strong>{" "}
+                {
+                  plan.benefits.find(
+                    (benefit) =>
+                      benefit.type ===
+                      "PRIMARY_CARE_VISIT_TO_TREAT_AN_INJURY_OR_ILLNESS"
+                  ).cost_sharings[0].display_string
+                }
+              </p>
+              <p>
+                <strong>Specialist care:</strong>{" "}
+                {
+                  plan.benefits.find(
+                    (benefit) => benefit.type === "SPECIALIST_VISIT"
+                  ).cost_sharings[0].display_string
+                }
+              </p>
+              <p>
+                <strong>Rating:</strong> {plan.quality_rating.global_rating}/5
+                stars
+              </p>
+              <hr />
+            </div>
+          ))}
+        </div>
+      </Layout>
     );
   } else {
     return (
@@ -174,14 +195,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
         <h1>Find affordable health insurance</h1>
         <h2>Health Plan Calculator</h2>
         <div className="ds-u-fill--secondary-lightest">
-          //@ts-ignore
-          <p>
-            {
-              //@ts-ignore
-              data.value?.data.ranges.premiums.min ?? "N/A"
-            }{" "}
-            per month
-          </p>
+          <p>{data.value?.data.ranges.premiums.min ?? "N/A"} per month</p>
           <p>
             This Marketplace estimate is based on campaign data. Personal data
             will not be saved without permission.
@@ -194,9 +208,14 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
           <TextField
             label="Please enter your zip code"
             name="zip-code"
+            mask="zip"
+            inputMode="numeric"
+            type="text"
             value={zipCode.value}
             size="medium"
-            onInput={(e) => (zipCode.value = e.target.value)}
+            onInput={(e) => {
+              handleZipCodeChange(e.target.value);
+            }}
           />
           <TextField
             hint={
@@ -210,6 +229,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             }
             mask="currency"
             inputMode="numeric"
+            type="text"
             size="medium"
             label="Estimated annual income"
             value={income.value}
@@ -218,7 +238,8 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             }}
           />
           <TextField
-            mask="number"
+            inputMode="numeric"
+            type="text"
             size="small"
             label="Age"
             value={age.value}
@@ -289,7 +310,13 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
           >
             Update price
           </Button>
-          <Button onClick={() => {}}>View plans and prices</Button>
+          <Button
+            onClick={() => {
+              shouldShowPlans.value = true;
+            }}
+          >
+            View plans and prices
+          </Button>
         </form>
         <Alert
           hideIcon={true}
