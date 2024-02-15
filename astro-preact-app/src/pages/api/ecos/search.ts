@@ -27,6 +27,81 @@ interface SearchBodyType {
   aptc_override?: number;
 }
 
+interface EstimatesResponseType {
+  estimates: {
+    aptc: number;
+    csr: string;
+    hardship_exemption: boolean;
+    is_medicaid_chip: boolean;
+    in_coverage_gap: boolean;
+  }[];
+}
+
+interface PlanResponseType {
+  plans: {
+    id: string
+    name: string;
+    premium: number;
+    premium_w_credit: number;
+    metal_level: string;
+    type: string;
+    benefits: {
+      type: string;
+      name: string;
+      covered: true;
+      cost_sharings:
+        {
+          coinsurance_rate: 0.2,
+          copay_amount: 0,
+          network_tier: string,
+          display_string: string,
+        }[];
+    }[];
+    issuer: {
+      id: number;
+      name: string;
+    };
+    deductibles: {
+      type: string;
+      amount: number;
+    }[];
+    quality_rating: {
+      global_rating: number;
+    };
+    [key: string]: any;
+  }[];
+  total: number;
+  rate_area: {
+    state: string;
+    area: number;
+  };
+  facet_groups: {
+    facets: {
+      name: string;
+      values: {
+        value: string;
+        count: number;
+      }[];
+    }[];
+  }[];
+  ranges: {
+    premiums: {
+      min: number;
+      max: number;
+    };
+    deductibles: {
+      min: number;
+      max: number;
+    };
+  };
+}
+
+export interface EcosPlanSearchResponseType {
+  campaignId: string;
+  search: SearchBodyType;
+  data: PlanResponseType;
+}
+
 export const campaigns = {
   campaign_1: {
     id: "campaign_1",
@@ -39,7 +114,7 @@ export const campaigns = {
       min: 35,
       max: 45,
     },
-    is_parent: true
+    is_parent: true,
   },
   campaign_2: {
     id: "campaign_2",
@@ -63,7 +138,11 @@ export const POST: APIRoute = async ({ params, request }) => {
     household: { income, people },
     market,
   } = await request.json();
-  const { zipcode: target_zip, income_range, age_range } = campaigns[campaignId] ?? {
+  const {
+    zipcode: target_zip,
+    income_range,
+    age_range,
+  } = campaigns[campaignId] ?? {
     target_zip: null,
     age_range: null,
     income_range: null,
@@ -104,11 +183,11 @@ export const POST: APIRoute = async ({ params, request }) => {
           is_pregnant: people[0].is_pregnant ?? false,
           is_parent: people[0].is_parent ?? false,
           uses_tobacco: people[0].uses_tobacco ?? false,
-        }
+        },
       ],
     },
   };
-  
+
   // Add an empty array for the dependent if the first person is a parent
   if (people[0].is_parent) {
     mergedSearchValues.household.people.push({});
@@ -125,19 +204,20 @@ export const POST: APIRoute = async ({ params, request }) => {
       body: JSON.stringify(mergedSearchValues),
     }
   );
-  const estimatesResponseJson = await estimatesResponse.json();
-  console.log(estimatesResponseJson);
+  const estimatesResponseJson: EstimatesResponseType =
+    await estimatesResponse.json();
 
+  // Set the APTC override if the user is eligible
   if (estimatesResponseJson.estimates[0].aptc > 0) {
     mergedSearchValues.household.people[0].aptc_eligible = true;
     mergedSearchValues.aptc_override = estimatesResponseJson.estimates[0].aptc;
   }
 
+  // Set has_mec if dependent/child is eligible
   if (estimatesResponseJson.estimates[1]?.is_medicaid_chip) {
-    mergedSearchValues.household.people[1] = {has_mec: true};
+    mergedSearchValues.household.people[1] = { has_mec: true };
   }
 
-  console.log(estimatesResponseJson);
   const response = await fetch(
     `${MARKETPLACE_BASE_URL}${MARKETPLACE_ENDPOINT_PLANS}?apikey=${MARKETPLACE_API_KEY}`,
     {
@@ -149,10 +229,12 @@ export const POST: APIRoute = async ({ params, request }) => {
       body: JSON.stringify(mergedSearchValues),
     }
   );
-  const responseJson = await response.json();
-  return new Response(JSON.stringify({
-    campaignId,
-    search: mergedSearchValues,
-    data: responseJson,
-  }));
+  const responseJson: PlanResponseType = await response.json();
+  return new Response(
+    JSON.stringify({
+      campaignId,
+      search: mergedSearchValues,
+      data: responseJson,
+    })
+  );
 };
