@@ -161,6 +161,11 @@ export const POST: APIRoute = async ({ params, request }) => {
       `${MARKETPLACE_BASE_URL}${MARKETPLACE_ENDPOINT_ZIP}/${searchZipCode}?apikey=${MARKETPLACE_API_KEY}`
     );
     const data = await response.json();
+    
+    if (data.counties.length < 1) {
+      return new Response("No location data available for zip code", { status: 400 });
+    }
+
     // TODO - handle multiple counties
     searchPlace.countyfips = data.counties[0].fips;
     searchPlace.state = data.counties[0].state;

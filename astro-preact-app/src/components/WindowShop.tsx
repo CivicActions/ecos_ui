@@ -18,6 +18,7 @@ import type { EcosPlanSearchResponseType } from "../pages/api/ecos/search";
 const data = signal<EcosPlanSearchResponseType | null>(null);
 const isLoading = signal<boolean>(false);
 const shouldFetchPlans = signal<boolean>(false);
+const fetchCount = signal<number>(0);
 
 const shouldUpdateFormData = signal<boolean>(false);
 const shouldShowPlans = signal<boolean>(false);
@@ -118,6 +119,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
           data.value = json;
           isLoading.value = false;
           shouldUpdateFormData.value = true;
+          fetchCount.value++;
         });
     }
   });
@@ -131,8 +133,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
 
   if (data.value?.data && shouldShowPlans.value == true) {
     const plans = data.value.data;
-    //PRIMARY_CARE_VISIT_TO_TREAT_AN_INJURY_OR_ILLNESS
-    //SPECIALIST_VISIT
+
     return (
       <Layout>
         <h1>Plans</h1>
@@ -211,18 +212,9 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
                 })}
               </p>
               <div className="ds-u-margin-top--3 ds-u-margin-bottom--4 ds-u-display--flex ds-u-justify-content--between">
-                <Button
-                  variation="solid"
-                >
-                  Plan Details
-                </Button>
-                <Button
-                  variation="outline"
-                >
-                  Compare
-                </Button>
+                <Button variation="solid">Plan Details</Button>
+                <Button variation="outline">Compare</Button>
               </div>
-                
               <hr />
             </div>
           ))}
@@ -236,11 +228,21 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
         <h2 className="ds-u-margin-top--3">Health Plan Calculator</h2>
         <div className="ds-u-fill--secondary-lightest ds-u-border--1 ds-u-border--success ds-u-padding-x--3 ds-u-padding-y--2">
           <h2 className="ds-u-color--success">
-            ${data.value?.data.ranges.premiums.min ?? "N/A"} per month
+            {isLoading.value
+              ? "Loading Plan Data"
+              : data.value?.data
+              ? `$${data.value?.data.ranges.premiums.min} per month`
+              : "Estimate your premium"}
           </h2>
           <p className="ds-u-font-size--sm">
-            This Marketplace estimate is based on campaign data. Personal data
-            will not be saved without permission.
+            {fetchCount.value > 1 ? (
+              <>This is an updated estimate based on your input.</>
+            ) : (
+              <>
+                This Marketplace estimate is based on campaign data. Personal
+                data will not be saved without permission.
+              </>
+            )}
           </p>
         </div>
         <p>
@@ -357,6 +359,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
           <div className="ds-u-margin-top--1 ds-u-margin-bottom--3 ds-u-display--flex ds-u-flex-direction--column">
             <Button
               className="ds-u-margin-y--1"
+              disabled={isLoading.value}
               variation="solid"
               onClick={() => {
                 shouldFetchPlans.value = true;
@@ -366,6 +369,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             </Button>
             <Button
               className="ds-u-margin-y--1"
+              disabled={isLoading.value}
               onClick={() => {
                 shouldShowPlans.value = true;
               }}
