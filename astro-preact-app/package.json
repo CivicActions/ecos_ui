@@ -17,12 +17,8 @@
     "@preact/signals": "^1.2.2",
     "astro": "^4.3.5",
     "preact": "^10.19.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "npm:@preact/compat@^17.1.2",
+    "react-dom": "npm:@preact/compat@^17.1.2",
     "typescript": "^5.3.3"
-  },
-  "overrides": {
-    "react": "npm:@preact/compat@latest",
-    "react-dom": "npm:@preact/compat@latest"
   }
 }
