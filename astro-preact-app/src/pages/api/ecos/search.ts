@@ -24,6 +24,8 @@ interface SearchBodyType {
       uses_tobacco?: boolean;
     }[];
   };
+  sort: string;
+  order: string;
   aptc_override?: number;
 }
 
@@ -186,6 +188,8 @@ export const POST: APIRoute = async ({ params, request }) => {
         },
       ],
     },
+    sort: "premium",
+    order: "asc",
   };
 
   // Add an empty array for the dependent if the first person is a parent

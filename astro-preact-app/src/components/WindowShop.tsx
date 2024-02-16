@@ -9,6 +9,7 @@ import {
   Dropdown,
   TextField,
   Button,
+  StarIcon,
 } from "@cmsgov/ds-healthcare-gov/preact";
 import Layout from "./Layout";
 import type { EcosPlanSearchResponseType } from "../pages/api/ecos/search";
@@ -135,33 +136,50 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
     return (
       <Layout>
         <h1>Plans</h1>
-        <p>
+        <p className="ds-u-font-size--md ds-u-margin-bottom--1">
           <strong>{plans.total} plans</strong> - ZIP Code {zipCode.value}
         </p>
         <Accordion>
-          <AccordionItem key="1" heading="Filter">
+          <AccordionItem
+            key="1"
+            heading="Filter"
+            buttonClassName="ds-u-font-size--md ds-u-fill--primary-lightest"
+          >
             Filter controls
           </AccordionItem>
-          <AccordionItem key="1" heading="Sort">
+          <AccordionItem
+            key="2"
+            heading="Sort"
+            buttonClassName="ds-u-font-size--md ds-u-fill--primary-lightest"
+          >
             Sort order controls
           </AccordionItem>
         </Accordion>
         <div>
           {plans.plans.map((plan) => (
             <div>
-              <h2>{plan.name}</h2>
-              <p>{plan.issuer.name}</p>
-              <p>
-                <strong>Premium:</strong> ${plan.premium_w_credit} per month
+              <h2 className="ds-u-font-size--lg ds-u-margin-top--4 ds-u-color--primary">
+                {plan.name}
+              </h2>
+              <p className="ds-u-font-size--sm ds-u-font-weight--bold ds-u-margin-top--05">
+                {plan.issuer.name}
               </p>
-              <p>
-                <strong>Deductible: </strong>${plan.deductibles[0].amount} per
-                year
+              <p className="ds-u-margin-top--05">
+                <strong>Premium:</strong>{" "}
+                <span className="ds-u-font-size--sm">
+                  ${plan.premium_w_credit} per month
+                </span>
               </p>
-              <p>
+              <p className="ds-u-margin-top--0">
+                <strong>Deductible:</strong>{" "}
+                <span className="ds-u-font-size--sm">
+                  ${plan.deductibles[0].amount} per year
+                </span>
+              </p>
+              <p className="ds-u-font-size--sm ds-u-margin-y--05">
                 {plan.metal_level} | {plan.type} | Plan ID: {plan.id}
               </p>
-              <p>
+              <p className="ds-u-font-size--sm ds-u-margin-top--05">
                 <strong>Primary care:</strong>{" "}
                 {
                   plan.benefits.find(
@@ -171,7 +189,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
                   ).cost_sharings[0].display_string
                 }
               </p>
-              <p>
+              <p className="ds-u-font-size--sm ds-u-margin-top--0">
                 <strong>Specialist care:</strong>{" "}
                 {
                   plan.benefits.find(
@@ -179,10 +197,32 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
                   ).cost_sharings[0].display_string
                 }
               </p>
-              <p>
-                <strong>Rating:</strong> {plan.quality_rating.global_rating}/5
-                stars
+              <p className="ds-u-font-size--sm ds-u-margin-top--0">
+                <strong>Rating:</strong>{" "}
+                {[1, 2, 3, 4, 5].map((i) => {
+                  const filled = plan.quality_rating.global_rating >= i;
+                  return (
+                    <StarIcon
+                      isFilled={filled}
+                      style={{ color: "gold" }}
+                      className="ds-u-font-size--sm"
+                    />
+                  );
+                })}
               </p>
+              <div className="ds-u-margin-top--3 ds-u-margin-bottom--4 ds-u-display--flex ds-u-justify-content--between">
+                <Button
+                  variation="solid"
+                >
+                  Plan Details
+                </Button>
+                <Button
+                  variation="outline"
+                >
+                  Compare
+                </Button>
+              </div>
+                
               <hr />
             </div>
           ))}
@@ -193,10 +233,12 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
     return (
       <Layout>
         <h1>Find affordable health insurance</h1>
-        <h2>Health Plan Calculator</h2>
-        <div className="ds-u-fill--secondary-lightest">
-          <p>{data.value?.data.ranges.premiums.min ?? "N/A"} per month</p>
-          <p>
+        <h2 className="ds-u-margin-top--3">Health Plan Calculator</h2>
+        <div className="ds-u-fill--secondary-lightest ds-u-border--1 ds-u-border--success ds-u-padding-x--3 ds-u-padding-y--2">
+          <h2 className="ds-u-color--success">
+            ${data.value?.data.ranges.premiums.min ?? "N/A"} per month
+          </h2>
+          <p className="ds-u-font-size--sm">
             This Marketplace estimate is based on campaign data. Personal data
             will not be saved without permission.
           </p>
@@ -206,7 +248,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
         </p>
         <form>
           <TextField
-            label="Please enter your zip code"
+            label="ZIP code"
             name="zip-code"
             mask="zip"
             inputMode="numeric"
@@ -216,10 +258,14 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             onInput={(e) => {
               handleZipCodeChange(e.target.value);
             }}
+            onBlur={(e) => {
+              console.log("hello");
+            }}
           />
           <TextField
             hint={
               <DrawerToggle
+                className="ds-u-margin-top--0 ds-u-margin-bottom--1"
                 onClick={() => {
                   isHelpDrawerOpen.value = !isHelpDrawerOpen.value;
                 }}
@@ -246,9 +292,15 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             onInput={(e) => (age.value = e.target.value)}
           />
           <Accordion>
-            <AccordionItem key="1" heading="Additional information">
+            <AccordionItem
+              key="1"
+              heading="Additional information"
+              buttonClassName="ds-u-font-size--md ds-u-padding-left--0 ds-u-margin-top--1"
+              contentClassName="ds-u-padding-left--3 ds-u-padding-top--0"
+            >
               <div>
                 <Dropdown
+                  labelClassName="ds-u-margin-top--0"
                   label="Who needs coverage?"
                   defaultValue="Individual"
                   name="coverage-type"
@@ -302,23 +354,28 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
               </div>
             </AccordionItem>
           </Accordion>
-          <Button
-            variation="solid"
-            onClick={() => {
-              shouldFetchPlans.value = true;
-            }}
-          >
-            Update price
-          </Button>
-          <Button
-            onClick={() => {
-              shouldShowPlans.value = true;
-            }}
-          >
-            View plans and prices
-          </Button>
+          <div className="ds-u-margin-top--1 ds-u-margin-bottom--3 ds-u-display--flex ds-u-flex-direction--column">
+            <Button
+              className="ds-u-margin-y--1"
+              variation="solid"
+              onClick={() => {
+                shouldFetchPlans.value = true;
+              }}
+            >
+              Update price
+            </Button>
+            <Button
+              className="ds-u-margin-y--1"
+              onClick={() => {
+                shouldShowPlans.value = true;
+              }}
+            >
+              View plans
+            </Button>
+          </div>
         </form>
         <Alert
+          className="ds-u-padding-top--3 ds-u-padding-bottom--4"
           hideIcon={true}
           heading="You may be eligible for extra savings if you pick a Silver plan"
         >

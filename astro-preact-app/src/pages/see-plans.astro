@@ -5,8 +5,6 @@ import WindowShop from '../components/WindowShop.jsx';
 const campaignId = Astro.url.searchParams.get('campaign_id');
 ---
 
-<Layout title="Welcome to Astro.">
-	<main>
+<Layout title="HC.gov Window Shop">
     <WindowShop campaignId={campaignId} client:only />
-	</main>
 </Layout>
