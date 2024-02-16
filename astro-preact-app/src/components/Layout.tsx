@@ -9,7 +9,7 @@ export default function Layout({
     <div className="page-wrapper">
       <Header />
       <main id="main-body-content" tabIndex={-1}>
-        <div className="ds-l-container ds-content ds-u-margin-top--2 ds-u-margin-bottom--4">{children}</div>
+        <div className="ds-l-container ds-content ds-u-margin-top--3 ds-u-margin-bottom--4">{children}</div>
       </main>
       <Footer />
     </div>
