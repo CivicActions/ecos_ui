@@ -41,7 +41,7 @@ interface EstimatesResponseType {
 
 interface PlanResponseType {
   plans: {
-    id: string
+    id: string;
     name: string;
     premium: number;
     premium_w_credit: number;
@@ -51,13 +51,12 @@ interface PlanResponseType {
       type: string;
       name: string;
       covered: true;
-      cost_sharings:
-        {
-          coinsurance_rate: 0.2,
-          copay_amount: 0,
-          network_tier: string,
-          display_string: string,
-        }[];
+      cost_sharings: {
+        coinsurance_rate: 0.2;
+        copay_amount: 0;
+        network_tier: string;
+        display_string: string;
+      }[];
     }[];
     issuer: {
       id: number;
@@ -161,9 +160,11 @@ export const POST: APIRoute = async ({ params, request }) => {
       `${MARKETPLACE_BASE_URL}${MARKETPLACE_ENDPOINT_ZIP}/${searchZipCode}?apikey=${MARKETPLACE_API_KEY}`
     );
     const data = await response.json();
-    
+
     if (data.counties.length < 1) {
-      return new Response("No location data available for zip code", { status: 400 });
+      return new Response("No location data available for zip code", {
+        status: 400,
+      });
     }
 
     // TODO - handle multiple counties
@@ -220,6 +221,10 @@ export const POST: APIRoute = async ({ params, request }) => {
   if (estimatesResponseJson.estimates[0].aptc > 0) {
     mergedSearchValues.household.people[0].aptc_eligible = true;
     mergedSearchValues.aptc_override = estimatesResponseJson.estimates[0].aptc;
+  }
+
+  if (estimatesResponseJson.estimates[0]?.is_medicaid_chip) {
+    mergedSearchValues.household.people[0].has_mec = true;
   }
 
   // Set has_mec if dependent/child is eligible

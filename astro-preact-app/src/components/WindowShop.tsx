@@ -1,8 +1,10 @@
+import { createRef } from "preact";
 import { signal, effect } from "@preact/signals";
 import {
   Accordion,
   AccordionItem,
   Alert,
+  ArrowIcon,
   ChoiceList,
   Drawer,
   DrawerToggle,
@@ -14,22 +16,23 @@ import {
 import Layout from "./Layout";
 import type { EcosPlanSearchResponseType } from "../pages/api/ecos/search";
 
-// const location = signal<Location | null>(null);
 const data = signal<EcosPlanSearchResponseType | null>(null);
 const isLoading = signal<boolean>(false);
 const shouldFetchPlans = signal<boolean>(false);
 const fetchCount = signal<number>(0);
-
-const shouldUpdateFormData = signal<boolean>(false);
+const isError = signal<boolean>(false);
 const shouldShowPlans = signal<boolean>(false);
 
 const isHelpDrawerOpen = signal<boolean>(false);
 const zipCode = signal<string | null>(null);
+const zipCodeError = signal<string | null>(null);
 const fipsCode = signal<string | null>(null);
 const state = signal<string | null>(null);
 const income = signal<string | null>(null);
 const age = signal<string | null>(null);
+const ageError = signal<string | null>(null);
 const coverageType = signal<string | null>(null);
+const coverageTypeError = signal<string | null>(null);
 const hasDependent = signal<boolean>(false);
 const isPregnant = signal<boolean>(false);
 const isTobaccoUser = signal<boolean>(false);
@@ -56,30 +59,31 @@ interface SearchValuesType {
 }
 
 export default function WindowShop({ campaignId }: { campaignId: string }) {
+  const scrollToElement = createRef();
+  const premiumEstimate = createRef();
+
   if (campaignId && !data.value) {
     shouldFetchPlans.value = true;
   }
 
-  effect(() => {
-    if (shouldUpdateFormData.value) {
-      shouldUpdateFormData.value = false;
-      zipCode.value = data.value?.search.place.zipcode;
-      fipsCode.value = data.value?.search.place.countyfips;
-      state.value = data.value?.search.place.state;
-      income.value = data.value?.search.household.income.toString();
-      age.value = data.value?.search.household.people[0].age.toString();
-      coverageType.value = data.value?.search.market;
-      hasDependent.value = data.value?.search.household.people[0].is_parent;
-      isPregnant.value = data.value?.search.household.people[0].is_pregnant;
-      isTobaccoUser.value = data.value?.search.household.people[0].uses_tobacco;
-      isCoverageEligible.value = data.value?.search.household.people[0].has_mec;
-    }
-  });
+  const updateFormData = () => {
+    zipCode.value = data.value?.search.place.zipcode;
+    fipsCode.value = data.value?.search.place.countyfips;
+    state.value = data.value?.search.place.state;
+    income.value = data.value?.search.household.income.toString();
+    age.value = data.value?.search.household.people[0].age.toString();
+    coverageType.value = data.value?.search.market;
+    hasDependent.value = data.value?.search.household.people[0].is_parent;
+    isPregnant.value = data.value?.search.household.people[0].is_pregnant;
+    isTobaccoUser.value = data.value?.search.household.people[0].uses_tobacco;
+    isCoverageEligible.value = data.value?.search.household.people[0].has_mec;
+  };
 
   effect(() => {
     if (shouldFetchPlans.value) {
       shouldFetchPlans.value = false;
       isLoading.value = true;
+      isError.value = false;
 
       const searchValues: SearchValuesType = {
         campaignId,
@@ -114,11 +118,18 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
         },
         body: JSON.stringify(searchValues),
       })
-        .then((response) => response.json())
+        .then((response) => {
+          if (!response.ok) {
+            isError.value = true;
+            isLoading.value = false;
+            return { error: response.statusText };
+          }
+          return response.json();
+        })
         .then((json) => {
           data.value = json;
+          updateFormData();
           isLoading.value = false;
-          shouldUpdateFormData.value = true;
           fetchCount.value++;
         });
     }
@@ -126,9 +137,28 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
 
   // Unset state and fips if user changes zip code
   const handleZipCodeChange = (zip: string) => {
+    if (zipCodeError.value) zipCodeError.value = null;
     zipCode.value = zip;
     state.value = null;
     fipsCode.value = null;
+  };
+
+  const handleZipCodeBlur = () => {
+    if (zipCode.value.length > 5) {
+      zipCodeError.value = "ZIP Code cannot be more than 5 digits";
+    } else if (zipCode.value.length < 5) {
+      zipCodeError.value = "ZIP Code cannot be less than 5 digits";
+    } else if (zipCodeError.value) {
+      zipCodeError.value = null;
+    }
+  };
+
+  const handleAgeBlur = () => {
+    if (parseInt(age.value) > 125) {
+      ageError.value = "Age cannot be more than 125 years old";
+    } else if (ageError.value) {
+      ageError.value = null;
+    }
   };
 
   if (data.value?.data && shouldShowPlans.value == true) {
@@ -136,7 +166,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
 
     return (
       <Layout>
-        <h1>Plans</h1>
+        <h1 autoFocus>Plans</h1>
         <p className="ds-u-font-size--md ds-u-margin-bottom--1">
           <strong>{plans.total} plans</strong> - ZIP Code {zipCode.value}
         </p>
@@ -219,23 +249,61 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             </div>
           ))}
         </div>
+        <Button
+          className="ds-u-margin-y--1"
+          disabled={isLoading.value}
+          variation="ghost"
+          onClick={() => {
+            shouldShowPlans.value = false;
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          <ArrowIcon direction="left" />
+          Back to search
+        </Button>
       </Layout>
     );
   } else {
     return (
       <Layout>
         <h1>Find affordable health insurance</h1>
-        <h2 className="ds-u-margin-top--3">Health Plan Calculator</h2>
+        <h2 ref={scrollToElement} className="ds-u-margin-top--3">
+          Health Plan Calculator
+        </h2>
         <div className="ds-u-fill--secondary-lightest ds-u-border--1 ds-u-border--success ds-u-padding-x--3 ds-u-padding-y--2">
           <h2 className="ds-u-color--success">
-            {isLoading.value
-              ? "Loading Plan Data"
-              : data.value?.data
-              ? `$${data.value?.data.ranges.premiums.min} per month`
-              : "Estimate your premium"}
+            <span ref={premiumEstimate} tabIndex={-1}>
+              {isError.value ? (
+                "Error fetching plan data"
+              ) : isLoading.value ? (
+                "Loading plan data"
+              ) : data.value?.data ? (
+                <>
+                  <span className="ds-u-visibility--screen-reader">
+                    Your estimated premium is{" "}
+                  </span>
+                  ${data.value?.data.ranges.premiums.min} per month
+                </>
+              ) : (
+                "Estimate your premium"
+              )}
+            </span>
           </h2>
+          {!data.value?.search.aptc_override}
           <p className="ds-u-font-size--sm">
-            {fetchCount.value > 1 ? (
+            {isCoverageEligible.value ? (
+              <>
+                May be eligible for coverage through{" "}
+                <strong>
+                  Medicaid or the Children's Health Insurance Program (CHIP)
+                </strong>
+              </>
+            ) : !data.value?.search.aptc_override ? (
+              <>
+                Based on the information below, you may not qualify for a
+                premium tax credit or other savings on health insurance
+              </>
+            ) : fetchCount.value > 1 ? (
               <>This is an updated estimate based on your input.</>
             ) : (
               <>
@@ -250,6 +318,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
         </p>
         <form>
           <TextField
+            errorMessage={zipCodeError.value}
             label="ZIP code"
             name="zip-code"
             mask="zip"
@@ -260,9 +329,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             onInput={(e) => {
               handleZipCodeChange(e.target.value);
             }}
-            onBlur={(e) => {
-              console.log("hello");
-            }}
+            onBlur={() => handleZipCodeBlur()}
           />
           <TextField
             hint={
@@ -286,12 +353,17 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             }}
           />
           <TextField
+            errorMessage={ageError.value}
             inputMode="numeric"
             type="text"
             size="small"
             label="Age"
             value={age.value}
-            onInput={(e) => (age.value = e.target.value)}
+            onInput={(e) => {
+              if (ageError.value) ageError.value = null;
+              return (age.value = e.target.value);
+            }}
+            onBlur={() => handleAgeBlur()}
           />
           <Accordion>
             <AccordionItem
@@ -302,12 +374,19 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
             >
               <div>
                 <Dropdown
+                  errorMessage={coverageTypeError.value}
                   labelClassName="ds-u-margin-top--0"
                   label="Who needs coverage?"
                   defaultValue="Individual"
                   name="coverage-type"
                   onChange={(e) => {
+                    coverageTypeError.value = null;
                     coverageType.value = e.target.value;
+                  }}
+                  onBlur={() => {
+                    if (coverageType.value == "Family")
+                      coverageTypeError.value =
+                        "Family plans are not available at this time";
                   }}
                   options={[
                     { value: "Individual", label: "Individual" },
@@ -317,18 +396,30 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
                 <ChoiceList
                   choices={[
                     {
+                      // defaultChecked: hasDependent.value,
                       label: "Parent of a child under 19",
                       value: "hasDependent",
                     },
                     {
+                      // defaultChecked: isPregnant.value,
                       label: "Pregnant",
                       value: "isPregnant",
                     },
                     {
+                      // defaultChecked: isTobaccoUser.value,
                       label: "Tobacco user",
                       value: "isTobaccoUser",
                     },
                     {
+                      defaultChecked: isCoverageEligible.value,
+                      inputRef: (ref) => {
+                        // sets to checked if our fetched data indicates they are eligible
+                        if (isCoverageEligible.value && ref) {
+                          ref.checked = true;
+                        } else if (!isCoverageEligible.value && ref) {
+                          ref.checked = false;
+                        }
+                      },
                       label:
                         "Eligible for health coverage through a job, Medicare, Medicaid, or CHIP",
                       value: "hasCoverageEligible",
@@ -338,16 +429,16 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
                   onChange={(e) => {
                     switch (e.target.value) {
                       case "hasDependent":
-                        hasDependent.value = !hasDependent.value;
+                        hasDependent.value = e.target.checked;
                         break;
                       case "isPregnant":
-                        isPregnant.value = !isPregnant.value;
+                        isPregnant.value = e.target.checked;
                         break;
                       case "isTobaccoUser":
-                        isTobaccoUser.value = !isTobaccoUser.value;
+                        isTobaccoUser.value = e.target.checked;
                         break;
                       case "hasCoverageEligible":
-                        isCoverageEligible.value = !isCoverageEligible.value;
+                        isCoverageEligible.value = e.target.checked;
                         break;
                     }
                   }}
@@ -362,7 +453,15 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
               disabled={isLoading.value}
               variation="solid"
               onClick={() => {
+                if (
+                  zipCodeError.value ||
+                  ageError.value ||
+                  coverageTypeError.value
+                )
+                  return;
                 shouldFetchPlans.value = true;
+                scrollToElement.current?.scrollIntoView();
+                premiumEstimate.current?.focus();
               }}
             >
               Update price
@@ -372,6 +471,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
               disabled={isLoading.value}
               onClick={() => {
                 shouldShowPlans.value = true;
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
             >
               View plans
