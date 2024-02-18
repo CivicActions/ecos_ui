@@ -5,9 +5,6 @@ interface Props {
 
 const { title } = Astro.props;
 
-//@ts-ignore
-import { Header, Footer } from '@cmsgov/ds-healthcare-gov/preact';
-
 import '@cmsgov/ds-healthcare-gov/css/index.css';
 import '@cmsgov/ds-healthcare-gov/css/healthcare-theme.css';
 ---
@@ -16,7 +13,7 @@ import '@cmsgov/ds-healthcare-gov/css/healthcare-theme.css';
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="description" content="Astro description" />
+		<meta name="description" content="Get health plans and price quotes for your area." />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
