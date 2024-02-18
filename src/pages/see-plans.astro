@@ -1,0 +1,10 @@
+---
+import Layout from '../layouts/Layout.astro';
+import WindowShop from '../components/WindowShop.jsx';
+
+const campaignId = Astro.url.searchParams.get('campaign_id');
+---
+
+<Layout title="Health insurance plans & prices">
+    <WindowShop campaignId={campaignId} client:only />
+</Layout>

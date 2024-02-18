@@ -1,0 +1,25 @@
+---
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+
+import '@cmsgov/ds-healthcare-gov/css/index.css';
+import '@cmsgov/ds-healthcare-gov/css/healthcare-theme.css';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Get health plans and price quotes for your area." />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+	</head>
+	<body>
+		  <slot />
+	</body>
+</html>
