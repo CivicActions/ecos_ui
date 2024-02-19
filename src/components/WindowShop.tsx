@@ -12,6 +12,7 @@ import {
   TextField,
   Button,
   StarIcon,
+  unmaskValue
 } from "@cmsgov/ds-healthcare-gov/preact";
 import Layout from "./Layout";
 import type { EcosPlanSearchResponseType } from "../pages/api/ecos/search";
@@ -94,7 +95,7 @@ export default function WindowShop({ campaignId }: { campaignId: string }) {
         },
         market: coverageType.value,
         household: {
-          income: parseInt(income.value),
+          income: parseInt(unmaskValue(income.value, 'currency')),
           people: [
             {
               age: parseInt(age.value),
